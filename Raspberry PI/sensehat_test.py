@@ -30,10 +30,13 @@ while True:
     if (abs(pitch - last_pitch) > threshold or
         abs(roll - last_roll) > threshold or
         abs(yaw - last_yaw) > threshold):
-        
-        # Registrer tidspunktet
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"Motion detected at {timestamp}")
+
+        for i in range(10):  # Send 10 målinger ved bevægelse
+            orientation = sense.get_orientation()
+            pitch = orientation['pitch'], roll = orientation['roll'], yaw = orientation['yaw']
+            # Registrer tidspunktet
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"Motion detected at {timestamp}")
 
         #pak data i JSON og send som broadcast
         #jeg bruger round() for at begrænse antallet af decimaler, så der kun er to decimaler
@@ -43,13 +46,22 @@ while True:
             "yaw": round(yaw, 2),
             'timestamp': timestamp
         }
-        message = json.dumps(data).encode('utf-8')
-        socket_sender.sendto(message, (BROADCAST_IP, BROADCAST_PORT))
+
+
+    # Send data som JSON via UDP broadcast
+    message = json.dumps(data)#konverter til JSON string
+    message_bytes = message.encode() #konverter til bytes
+    socket_sender.sendto(message, (BROADCAST_IP, BROADCAST_PORT)) #send til broadcast IP og port
+    print(f"Broadcaster sent : {message}") #bekræftelse på sending
 
 
     # Opdater sidste måling
     last_pitch, last_roll, last_yaw = pitch, roll, yaw
 
-    time.sleep(0.5)  # vent et halvt sekund mellem målinger
-## broadcast 
+    time.sleep(0.10)  # vent et halvt sekund mellem målinger
+
+    socket_sender.close()  # Luk socketten når programmet afsluttes
+
+
+
 
